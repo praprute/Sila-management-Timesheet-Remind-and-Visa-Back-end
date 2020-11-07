@@ -170,7 +170,7 @@ exports.insertWork = (req, res, next) => {
         })
     })
 
-    console.log(body)
+    // console.log(body)
 }
 
 exports.fetchworkAuth = (req, res) => {
@@ -276,7 +276,7 @@ exports.register = (req, res, next) => {
         if (err) return next(err)
 
         if (name.length > 0) {
-            console.log(name.length)
+            // console.log(name.length)
             if (email.length > 0) {
                 if (password.length > 0) {
                     var sql = "SELECT*FROM `sila-management`.`users` WHERE email=?;"
@@ -371,7 +371,6 @@ exports.fetchImage = async (req, res, next) => {
         
     })
 
-
     // s3.getObject(params, (err, data) => {
     //     if(err) {
     //         res.status(400).json({
@@ -386,6 +385,8 @@ exports.fetchImage = async (req, res, next) => {
     // })
 
 }
+
+
 
 
 exports.uploadReminder = async (req, res, next) => {
@@ -470,7 +471,7 @@ exports.fetchRemindAdmin = async (req, res, next) => {
                 })
 
                 }
-                console.log(Allresult)
+                // console.log(Allresult)
                 res.json({Allresult})
 
             }
@@ -480,6 +481,7 @@ exports.fetchRemindAdmin = async (req, res, next) => {
 }
 
 exports.deleteRemind = async (req, res, next) => {
+
     var { body } = req
     var idUserRemind = body.idUserRemind
     var idReminder = body.idReminder
@@ -586,7 +588,7 @@ exports.updateRemind = async (req, res, next) => {
     var notidate3 = body.notidate3
     var notidate2 = body.notidate2
     var notidate1 = body.notidate1
-    console.log(req.body)
+    // console.log(req.body)
     if(!req.files || req.files == null || req.files.file == '') {
         req.getConnection((err, connection) => {
             if (err) return next(err)
@@ -662,6 +664,363 @@ exports.updateRemind = async (req, res, next) => {
         
     }
 }
+
+
+
+exports.uploadVisa = async (req, res, next) => {
+
+    var {body} = req
+    var idUserVisa = body.idUserVisa
+    var img = body.img
+    var img = body.imgStamp
+    var costVisa   = body.costVisa
+    var costPermit = body.costPermit
+    var date = body.notidate 
+    var notidate3 = body.notidate3
+    var notidate2 = body.notidate2
+    var notidate1 = body.notidate1
+    var description = body.description
+
+    console.log(req.body)
+
+    if(!req.files && req.files.file1 && req.files.file2 || !req.files && req.files.file1 || !req.files && req.files.file2) {
+        res.status(400).json({
+            message:'no file upload',
+            status: false
+        })
+    } else {
+        
+        let params1 = { 
+            Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+            Key:  new Date().getMilliseconds() + new Date()+  new Date().getSeconds() + 'Visa' + config.secret +'.jpg',  // <<=== ชื่อที่เราจะตั้งให้ไฟล์นั้น
+            Body: req.files.file1.data,
+            ACL: 'public-read', // <<=== ให้ไฟล์นี้เป็น public
+        }
+
+        await s3.putObject(params1, (err, data) => {
+            if(err) {
+                res.status(400).json({
+                    message:'upload error '+ err.message,
+                    status: false
+                })
+            }
+        })
+
+        await setTimeout(function(){
+        }, 200); 
+
+        let params2 = { 
+            Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+            Key:  new Date().getMilliseconds() + new Date()+  new Date().getSeconds() + 'VisaStamp' + config.secret +'.jpg',  // <<=== ชื่อที่เราจะตั้งให้ไฟล์นั้น
+            Body: req.files.file2.data,
+            ACL: 'public-read', // <<=== ให้ไฟล์นี้เป็น public
+        }
+
+        await s3.putObject(params2, (err, data) => {
+            if(err) {
+                res.status(400).json({
+                    message:'upload error '+ err.message,
+                    status: false
+                })
+            } else {
+                req.getConnection((err, connection) => {
+                    if (err) return next(err)
+                    var sql = "INSERT INTO `sila-management`.`RemindVisa`(idUserVisa, img, imgStamp,costVisa, costPermit,date, description, noti3, noti2, noti1) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
+                connection.query(sql, [idUserVisa, params1.Key, params2.Key, costVisa, costPermit, date,description, notidate3 , notidate2, notidate1], (err, results) => {
+                    if (err) {
+                        return next(err)
+                    } else {
+                        res.json({
+                            success: "success",
+                            message: results,
+                        })
+                    }
+                })
+        
+                })  
+            }
+        })  
+        
+    }
+}
+
+exports.fetchVisaAdmin = async (req, res, next) => {
+    var { body } = req
+    req.getConnection((err, connection) => {
+        if (err) return next(err)
+        var sql = "SELECT * FROM `sila-management`.RemindVisa, `sila-management`.users  WHERE `RemindVisa`.idUserVisa = `users`.idusers"
+        var Allresult = []
+        connection.query(sql, [], (err, results) => {
+            if (err) {
+                return next(err)
+            } else {
+                for(var i = 0; i < results.length ; i++ ){
+                    let params1 = {
+                    Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                    Key: results[i].img
+                    }
+
+                    let params2 = {
+                    Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                    Key: results[i].imgStamp
+                    }
+
+                const url1 = s3.getSignedUrl('getObject', params1)
+                const url2 = s3.getSignedUrl('getObject', params2)
+
+                Allresult.push({
+                    user: results[i],
+                    imageUrl1: url1,
+                    imageUrl2: url2
+                })
+                }
+                res.json({Allresult})
+            }
+        })
+        
+    })
+}
+
+exports.deleteVisa = async (req, res, next) => {
+
+    var { body } = req
+    var idRemindVisa = body.idRemindVisa
+    var idUserVisa = body.idUserVisa   
+
+    req.getConnection((err, connection) => {
+        if (err) return next(err)
+        var sql = " SELECT img, imgStamp FROM `sila-management`.RemindVisa  WHERE idUserVisa = ? and idRemindVisa = ?"
+        connection.query(sql, [idUserVisa,idRemindVisa] , (err, results) => {
+            if (err) {
+                return next(err)
+            } else{
+
+                let params1 = {
+                    Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                    Key: results[0].img
+                    }
+
+                let params2 = {
+                        Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                        Key: results[0].imgStamp
+                        }
+
+                s3.deleteObject(params1,  (err, data) => {
+                    if(err) {
+                        res.status(400).json({
+                            message:'upload error '+ err.message,
+                            status: false
+                        })
+                    }
+                })
+                s3.deleteObject(params2, (err, data) => {
+                    if(err) {
+                        res.status(400).json({
+                            message:'upload error '+ err.message,
+                            status: false
+                        })
+                    }else {
+                        req.getConnection((err, connection) => {
+                                if (err) return next(err)
+                                var sql = "DELETE FROM `sila-management`.RemindVisa WHERE idRemindVisa = ?"
+                                connection.query(sql, [idRemindVisa],(err, results) => {
+                                    if (err) {
+                                        return next(err)
+                                    } else {
+                                        res.json({
+                                            success: "success",
+                                            message: results
+                                        })
+                                    }
+                                })
+                            })
+                        }
+                })
+            }
+        } )
+
+    })
+}
+
+exports.fetchRemindVisaUser = async (req, res, next) => {
+    var { body } = req
+    var idUserVisa = body.idUserVisa
+    req.getConnection((err, connection) => {
+        if (err) return next(err)
+        var sql = " SELECT * FROM `sila-management`.RemindVisa WHERE idUserVisa = ? "
+        var Allresult = []
+        connection.query(sql, [idUserVisa], (err, results) => {
+            if (err) {
+                return next(err)
+            } else {
+                for(var i = 0; i < results.length ; i++ ){
+                    let params1 = {
+                    Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                    Key: results[i].img
+                    }
+
+                    let params2 = {
+                    Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                    Key: results[i].imgStamp
+                    }
+
+                const url1 = s3.getSignedUrl('getObject', params1)
+                const url2 = s3.getSignedUrl('getObject', params2)
+
+                Allresult.push({
+                    user: results[i],
+                    imageUrl: url1,
+                    imageUrl2: url2
+                })
+                }
+                res.json({Allresult})
+            }
+        })
+        
+    })
+
+}
+
+exports.fetchVisaUserByIdforUpdate = async (req, res, next) => {
+    var { body } = req
+    var idRemindVisa = body.idRemindVisa
+    req.getConnection((err, connection) => {
+        if (err) return next(err)
+        var sql = " SELECT * FROM `sila-management`.RemindVisa WHERE idRemindVisa = ? "
+        connection.query(sql, [idRemindVisa], (err, results) => {
+            if (err) {
+                return next(err)
+            } else {
+                res.json({results})
+            }
+        })
+        
+    })
+}
+
+exports.updateVisa = async (req, res, next) => {
+
+    var {body} = req
+    var idRemindVisa = body.idRemindVisa
+    var idUserVisa = body.idUserVisa
+    var img = body.img
+    var imgStamp = body.imgStamp
+    var costVisa = body.costVisa
+    var costPermit = body.costPermit
+    var date = body.notidate 
+    var notidate3 = body.notidate3
+    var notidate2 = body.notidate2
+    var notidate1 = body.notidate1
+    var description = body.description
+    // console.log(req.body)
+
+    if(!req.files || req.files == null || req.files.file1 == '' || req.files.file2 == '') {
+        req.getConnection((err, connection) => {
+            if (err) return next(err)
+            var sql = "UPDATE `sila-management`.`RemindVisa` SET costVisa = ?, costPermit = ? , date = ? , description = ? , noti3 =? , noti2 =? , noti1 =?  \
+                    WHERE idRemindVisa = ? "
+        connection.query(sql, [costVisa, costPermit, date, description , notidate3 , notidate2, notidate1, idRemindVisa], (err, results) => {
+            if (err) {
+                return next(err)
+            } else {
+                res.json({results})
+            }
+        })
+        })  
+    } else {
+        
+        let params1 = { 
+            Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+            Key:  new Date().getMilliseconds() + new Date()+  new Date().getSeconds() + 'Visa' + config.secret +'.jpg',  // <<=== ชื่อที่เราจะตั้งให้ไฟล์นั้น
+            Body: req.files.file1.data,
+            ACL: 'public-read', // <<=== ให้ไฟล์นี้เป็น public
+        }
+
+        let params2 = { 
+            Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+            Key:  new Date().getMilliseconds() + new Date()+  new Date().getSeconds() + 'VisaStamp' + config.secret +'.jpg',  // <<=== ชื่อที่เราจะตั้งให้ไฟล์นั้น
+            Body: req.files.file2.data,
+            ACL: 'public-read', // <<=== ให้ไฟล์นี้เป็น public
+        }
+
+        s3.putObject(params1, (err, data) => {
+            if(err) {
+                res.status(400).json({
+                    message:'upload error '+ err.message,
+                    status: false
+                })
+            }else{
+                s3.putObject(params2, (err, data) => {
+                    if(err) {
+                        res.status(400).json({
+                            message:'upload error '+ err.message,
+                            status: false
+                        })
+                    } else {
+                        req.getConnection((err, connection) => {
+                            if (err) return next(err)
+                            var sql = "SELECT img, imgStamp  FROM `sila-management`.RemindVisa  WHERE idRemindVisa = ?"
+                            connection.query(sql, [idRemindVisa] , (err, results) => {
+                                if (err) {
+                                    return next(err)
+                                }else{
+
+                                    let paramsD1 = {
+                                        Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                                        Key: results[0].img
+                                        }
+
+                                    let paramsD2 = {
+                                        Bucket: process.env.BUCKET_NAME,  // <<=== เก็บ config ไว้ใน .env
+                                        Key: results[0].imgStamp
+                                        }
+
+                                    s3.deleteObject(paramsD1,  (err, data) => {
+                                        if(err) {
+                                            res.status(400).json({
+                                                message:'upload error '+ err.message,
+                                                status: false
+                                            })
+                                        }else{
+                                            s3.deleteObject(paramsD2, (err, data) => {
+                                                if(err) {
+                                                    res.status(400).json({
+                                                        message:'upload error '+ err.message,
+                                                        status: false
+                                                    })
+                                                } else {
+                                            req.getConnection((err, connection) => {
+                                                if (err) return next(err)
+                                                var sql = "UPDATE `sila-management`.`RemindVisa` SET  costVisa = ?, costPermit = ?, img = ?, imgStamp = ?, date = ? , description = ? , noti3 =? , noti2 =? , noti1 =?  \
+                                                WHERE idRemindVisa = ? "
+                                            connection.query(sql, [costVisa, costPermit, params1.Key, params2.Key, date, description , notidate3 , notidate2, notidate1, idRemindVisa], (err, results) => {
+                                                if (err) {
+                                                    return next(err)
+                                                } else {
+                                                    res.json({
+                                                        success: "success",
+                                                        message: results,
+                                                    })
+                                                }
+                                            })
+                                            })  
+                                        }
+                                            })
+                                        }
+                        })
+                                }
+                            })
+                        })  
+                    }
+                })  
+            }
+        })  
+    }
+}
+
+
+
 
 
 

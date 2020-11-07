@@ -14,7 +14,6 @@ module.exports = function(app){
     app.post('/api/fetchpartner',requireSignin, controller.fetchpartner)
     app.post('/api/DeleteIndex', requireSignin, controller.DeleteIndex)
 
-
     app.post('/api/uploadReminder', requireSignin, controller.uploadReminder)
     app.post('/api/fetchImage', requireSignin, controller.fetchImage)
     app.post('/api/fetchRemindAdmin', requireSignin, controller.fetchRemindAdmin)
@@ -22,5 +21,12 @@ module.exports = function(app){
     app.post('/api/deleteRemind', requireSignin, controller.deleteRemind)
     app.post('/api/fetchRemindUserByIdforUpdate', requireSignin, controller.fetchRemindUserByIdforUpdate)
     app.post('/api/updateRemind', requireSignin, controller.updateRemind)
+
+    app.post('/api/uploadVisa', requireSignin, controller.uploadVisa)
+    app.post('/api/fetchVisaAdmin', requireSignin, controller.fetchVisaAdmin)
+    app.post('/api/deleteVisa', requireSignin, controller.deleteVisa)
+    app.post('/api/fetchRemindVisaUser', requireSignin, controller.fetchRemindVisaUser)
+    app.post('/api/fetchVisaUserByIdforUpdate', requireSignin, controller.fetchVisaUserByIdforUpdate)
+    app.post('/api/updateVisa', requireSignin, controller.updateVisa)
 
 }
